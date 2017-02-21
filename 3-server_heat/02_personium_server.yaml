@@ -1,0 +1,686 @@
+heat_template_version: 2013-05-23
+description: Create Personium system.
+
+#### リソース定義 ####
+parameters:
+  #AZ定義
+  availability_zone:
+    type: string
+    description: Availability zone
+    default: jp-west-1a
+
+## 仮想ネットワーク設定 ##
+
+  #webサーバIPアドレス(dmz)
+  webserver_dmz_ip:
+    type: string
+    description: IP of the web server.
+    default: 172.16.0.11
+
+  #webサーバIPアドレス(管理)
+  webserver_mng_ip:
+    type: string
+    description: IP of the web server.
+    default: 192.168.0.11
+
+  #APサーバIPアドレス(secure)
+  apserver_secure_ip:
+    type: string
+    description: IP of the AP server.
+    default: 172.16.1.11
+
+  #APサーバIPアドレス(管理)
+  apserver_mng_ip:
+    type: string
+    description: IP of the AP server.
+    default: 192.168.0.21
+
+  #ESサーバIPアドレス(secure)
+  esserver_secure_ip:
+    type: string
+    description: IP of the ES server.
+    default: 172.16.1.12
+
+  #ESサーバIPアドレス(管理)
+  esserver_mng_ip:
+    type: string
+    description: IP of the ES server.
+    default: 192.168.0.22
+
+  #DMZ ネットワークID
+  dmz_network_id:
+    type: string
+    description: ID of the dmz network.
+    default: { dmz_network_id } #set dmz network id.
+
+  #SECURE ネットワークID
+  secure_network_id:
+    type: string
+    description: ID of the secure network.
+    default: { secure_network_id } #set secure network id.
+
+  #Management ネットワークID
+  mng_network_id:
+    type: string
+    description: ID of the management network.
+    default: { management_network_id } #set management network id.
+
+## セキュリティグループ設定 ##
+
+  #DMZサブネットワークアドレス
+  dmz_subnet_cidr:
+    type: string
+    description: CIDR representation of the dmz subnet.
+    default: 172.16.0.0/24
+
+  #SECUREサブネットネットワークアドレス
+  secure_subnet_cidr:
+    type: string
+    description: CIDR representation of the secure subnet.
+    default: 172.16.1.0/24
+
+  #管理用サブネットネットワークアドレス
+  mng_subnet_cidr:
+    type: string
+    description: CIDR representation of the management subnet.
+    default: 192.168.0.0/24
+
+  #SSL-VPNサブネットネットワークアドレス
+  ssl_subnet_cidr:
+    type: string
+    description: CIDR representation of the ssl-vpn subnet.
+    default: 192.168.246.0/24
+
+  #DMZ用セキュリティグループ定義
+  dmz_secgroup_para:
+    type: string
+    description: Security group name of dmz network.
+    default: dmz_security_group
+
+  #SECUREネットワーク用セキュリティグループ定義
+  secure_secgroup_para:
+    type: string
+    description: SSecurity group name of secure network
+    default: secure_security_group
+
+  #管理ネットワーク用セキュリティグループ定義
+  management_secgroup_para:
+    type: string
+    description: Security group name of management network
+    default: management_security_group
+
+## サーバKey設定 ##
+
+  #WebサーバKey名
+  web_server_key_name:
+    type: string
+    description: Name of web server key.
+    default: { your_server_keyname } #set server key name.
+
+  #APサーバKey名
+  ap_server_key_name:
+    type: string
+    description: Name of ap server key.
+    default: { your_server_keyname } #set server key name.
+
+  #ESサーバKey名
+  es_server_key_name:
+    type: string
+    description: Name of es server key.
+    default: { your_server_keyname } #set server key name.
+
+#### リソース作成 ####
+resources:
+
+## セキュリティグループ構築 ##
+  #DMZセキュリティグループ作成
+  dmz_secgroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      availability_zone: { get_param: availability_zone }
+      name: { get_param: dmz_secgroup_para }
+      description: >
+        SecurityGroup to attach VM
+        Allow connections (icmp and tcp443) from Remote & PrivateIP
+      rules: [
+        {
+         #1 egress: TCP/1-65535/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: tcp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #2 egress: UDP/1-65535/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: udp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #3 egress: ICMP/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: icmp},
+        {
+         #4 ingress: TCP/local network
+         remote_ip_prefix: { get_param: dmz_subnet_cidr },
+         direction: ingress,
+         protocol: tcp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #5 ingress: UDP/local network
+         remote_ip_prefix: { get_param: dmz_subnet_cidr },
+         direction: ingress,
+         protocol: udp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #6 ingress: ICMP/local network
+         remote_ip_prefix: { get_param: dmz_subnet_cidr },
+         direction: ingress,
+         protocol: icmp},
+        {
+         #7 ingress: TCP/secure network
+         remote_ip_prefix: { get_param: secure_subnet_cidr },
+         direction: ingress,
+         protocol: tcp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #8 ingress: UDP/secure network
+         remote_ip_prefix: { get_param: secure_subnet_cidr },
+         direction: ingress,
+         protocol: udp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #9 ingress: ICMP/secure network
+         remote_ip_prefix: { get_param: secure_subnet_cidr },
+         direction: ingress,
+         protocol: icmp},
+        {
+         #10 ingress: TCP/443/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: ingress,
+         protocol: tcp,
+         port_range_min: 443,
+         port_range_max: 443} ]
+
+  #SECUREネットワークセキュリティグループ作成
+  secure_secgroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      availability_zone: { get_param: availability_zone }
+      name: { get_param: secure_secgroup_para }
+      description: >
+        SecurityGroup to attach VM
+        Allow connections from PrivateIP
+      rules: [
+        {
+         #1 egress: TCP/1-65535/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: tcp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #2 egress: UDP/1-65535/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: udp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #3 egress: ICMP/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: icmp},
+        {
+         #4 ingress: TCP/dmz network
+         remote_ip_prefix: { get_param: dmz_subnet_cidr },
+         direction: ingress,
+         protocol: tcp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #5 ingress: UDP/dmz network
+         remote_ip_prefix: { get_param: dmz_subnet_cidr },
+         direction: ingress,
+         protocol: udp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #6 ingress: ICMP/dmz network
+         remote_ip_prefix: { get_param: dmz_subnet_cidr },
+         direction: ingress,
+         protocol: icmp},
+        {
+         #7 ingress: TCP/local network
+         remote_ip_prefix: { get_param: secure_subnet_cidr },
+         direction: ingress,
+         protocol: tcp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #8 ingress: UDP/local network
+         remote_ip_prefix: { get_param: secure_subnet_cidr },
+         direction: ingress,
+         protocol: udp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #9 ingress: ICMP/local network
+         remote_ip_prefix: { get_param: secure_subnet_cidr },
+         direction: ingress,
+         protocol: icmp} ]
+
+  #管理ネットワークセキュリティグループ作成
+  management_secgroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      availability_zone: { get_param: availability_zone }
+      name: { get_param: management_secgroup_para }
+      description: >
+        SecurityGroup to attach VM
+        Allow connections from PrivateIP
+      rules: [
+        {
+         #1 egress: TCP/1-65535/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: tcp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #2 egress: UDP/1-65535/any
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: udp,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #3 egress: ICMP/RemoteIP
+         remote_ip_prefix: 0.0.0.0/0,
+         direction: egress,
+         protocol: icmp},
+        {
+         #4 ingress: TCP/local network
+         remote_ip_prefix: { get_param: mng_subnet_cidr },
+         direction: ingress,
+         protocol: TCP,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #5 ingress: TCP/local network
+         remote_ip_prefix: { get_param: mng_subnet_cidr },
+         direction: ingress,
+         protocol: UDP,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #6 ingress: ICMP/local network
+         remote_ip_prefix: { get_param: mng_subnet_cidr },
+         direction: ingress,
+         protocol: icmp},
+        {
+         #7 ingress: TCP/ssl-vpn network
+         remote_ip_prefix: { get_param: ssl_subnet_cidr },
+         direction: ingress,
+         protocol: TCP,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #8 ingress: TCP/ssl-vpn network
+         remote_ip_prefix: { get_param: ssl_subnet_cidr },
+         direction: ingress,
+         protocol: UDP,
+         port_range_min: 1,
+         port_range_max: 65535},
+        {
+         #9 ingress: ICMP/ssl-vpn network
+         remote_ip_prefix: { get_param: ssl_subnet_cidr },
+         direction: ingress,
+         protocol: icmp} ]
+
+## ポート作成 ##
+
+  #DMZサブネットにWebサーバ用ポート作成
+  webserver_port:
+   type: OS::Neutron::Port
+   properties:
+      availability_zone: { get_param: availability_zone }
+      network_id: { get_param: dmz_network_id }
+      fixed_ips:
+        - ip_address: { get_param: webserver_dmz_ip }
+      security_groups:
+        - { get_resource: dmz_secgroup }
+
+  #SECUREサブネットにAPサーバ用ポート作成
+  apserver_port:
+   type: OS::Neutron::Port
+   properties:
+      availability_zone: { get_param: availability_zone }
+      network_id: { get_param: secure_network_id }
+      fixed_ips:
+        - ip_address: { get_param: apserver_secure_ip }
+      security_groups:
+        - { get_resource: secure_secgroup }
+
+  #SECUREサブネットにESサーバ用ポート作成
+  esserver_port:
+   type: OS::Neutron::Port
+   properties:
+      availability_zone: { get_param: availability_zone }
+      network_id: { get_param: secure_network_id }
+      fixed_ips:
+        - ip_address: { get_param: esserver_secure_ip }
+      security_groups:
+        - { get_resource: secure_secgroup }
+
+  #管理用サブネットにWebサーバ用ポート作成
+  webserver_mng_port:
+   type: OS::Neutron::Port
+   properties:
+      availability_zone: { get_param: availability_zone }
+      network_id: { get_param: mng_network_id }
+      fixed_ips:
+        - ip_address: { get_param: webserver_mng_ip }
+      security_groups:
+        - { get_resource: management_secgroup }
+
+  #管理用サブネットにAPサーバ用ポート作成
+  apserver_mng_port:
+   type: OS::Neutron::Port
+   properties:
+      availability_zone: { get_param: availability_zone }
+      network_id: { get_param: mng_network_id }
+      fixed_ips:
+        - ip_address: { get_param: apserver_mng_ip }
+      security_groups:
+        - { get_resource: management_secgroup }
+
+  #管理用サブネットにESサーバ用ポート作成
+  esserver_mng_port:
+   type: OS::Neutron::Port
+   properties:
+      availability_zone: { get_param: availability_zone }
+      network_id: { get_param: mng_network_id }
+      fixed_ips:
+        - ip_address: { get_param: esserver_mng_ip }
+      security_groups:
+        - { get_resource: management_secgroup }
+
+
+## サーバ構築 ##
+
+  #webサーバ構築
+  web_server:
+    type: OS::Nova::Server
+    properties:
+      availability_zone: {get_param: availability_zone}
+      block_device_mapping:
+      - volume_id: {get_resource: web_server_volume}
+        device_name: vda
+      diskConfig: MANUAL
+      flavor: 'S-1'
+      key_name: { get_param: web_server_key_name}
+      name: demo_web_server
+      networks:
+      - port: { get_resource: webserver_port }
+      - port: { get_resource: webserver_mng_port}
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+
+            ssh-keygen -f /root/.ssh/id_rsa -t rsa -N ""
+            cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+
+            touch web_eth_config1
+            echo DEVICE=eth1 >> web_eth_config1
+            echo TYPE=Ethernet >> web_eth_config1
+            echo HWADDR=web_mac_addr1 >> web_eth_config1
+            echo IPADDR=web_ip_address1 >> web_eth_config1
+            echo NETMASK=255.255.255.0 >> web_eth_config1
+            echo NETWORK=192.168.0.0 >> web_eth_config1
+            echo BROADCAST=192.168.0.255 >> web_eth_config1
+            echo ONBOOT=yes >> web_eth_config1
+            echo NM_CONTROLLED=no >> web_eth_config1
+            echo BOOTPROTO=static >> web_eth_config1
+            echo DEFROUTE=no >> web_eth_config1
+            echo PEERDNS=yes >> web_eth_config1
+            echo PEERROUTES=yes >> web_eth_config1
+            echo IPV4_FAILURE_FATAL=yes >> web_eth_config1
+            echo IPV6INIT=no >> web_eth_config1
+            echo IPV6_AUTOCONF=no >> web_eth_config1
+            echo DHCPV6C=no >> web_eth_config1
+            echo IPV6_DEFROUTE=no >> web_eth_config1
+            echo IPV6_FAILURE_FATAL=no >> web_eth_config1
+            echo NAME="System eth1" >> web_eth_config1
+
+            touch web_route_config1
+            echo 192.168.246.0/24 via 192.168.0.1 >> web_route_config1
+
+            service network restart
+
+            yum install -y git
+            yum install -y ansible
+
+            git clone https://github.com/personium/ansible.git /tmp/ansible
+            mv /tmp/ansible/ansible_3server /root/
+            mv /root/ansible_3server /root/ansible
+
+            openssl genrsa 2048 > /root/ansible/resource/web/opt/nginx/conf/server.key
+            openssl req -new -key /root/ansible/resource/web/opt/nginx/conf/server.key << EOF > /root/ansible/resource/web/opt/nginx/conf/server.csr
+            { Country Name } # set country name
+            { State or Province Name } # set state name
+            { Locality Name } # set locality name
+            { Organization Name } # set oganization name
+            { Organizational Unit Name } # set oganization unit name
+            { Common Name } # set common name
+            { Email Address } # set mail address
+            { A challenge password } # set password
+            { An optional company name } # set company name
+            EOF
+            openssl x509 -days 3650 -req -signkey /root/ansible/resource/web/opt/nginx/conf/server.key < /root/ansible/resource/web/opt/nginx/conf/server.csr > /root/ansible/resource/web/opt/nginx/conf/server.crt
+
+
+            openssl genrsa -out /root/ansible/resource/ap/opt/x509/unit.key 2048 -outform DER
+            openssl req -new -key /root/ansible/resource/ap/opt/x509/unit.key -out /root/ansible/resource/ap/opt/x509/unit.csr << EOF
+            { Country Name } # set country name
+            { State or Province Name } # set state name
+            { Locality Name } # set locality name
+            { Organization Name } # set oganization name
+            { Organizational Unit Name } # set oganization unit name
+            { Common Name } # set common name
+            { Email Address } # set mail address
+            { A challenge password } # set password
+            { An optional company name } # set company name
+            EOF
+
+            openssl x509 -req -days 3650 -signkey /root/ansible/resource/ap/opt/x509/unit.key -out /root/ansible/resource/ap/opt/x509/unit-self-sign.crt < /root/ansible/resource/ap/opt/x509/unit.csr
+
+
+          params:
+            web_eth_config1: /etc/sysconfig/network-scripts/ifcfg-eth1
+            web_route_config1: /etc/sysconfig/network-scripts/route-eth1
+            web_mac_addr1: { get_attr: [ webserver_mng_port, mac_address ] }
+            web_ip_address1:  { get_param: webserver_mng_ip }
+
+  #Webサーバ用イメージ作成
+  web_server_volume:
+    type: OS::Cinder::Volume
+    properties:
+      availability_zone: {get_param: availability_zone}
+      description: 'web server volume'
+      name: web_server_sysvol
+      size: 30
+      volume_type: 'M1'
+      image: 'CentOS 6.5 64bit (English) 05'
+
+  #APサーバ構築
+  ap_server:
+    type: OS::Nova::Server
+    properties:
+      availability_zone: {get_param: availability_zone}
+      block_device_mapping:
+      - volume_id: {get_resource: ap_server_volume}
+        device_name: vda
+      - volume_id: {get_resource: ap_server_piolog_volume}
+        device_name: vdb
+      - volume_id: {get_resource: ap_server_webdav_volume}
+        device_name: vdc
+      diskConfig: MANUAL
+      flavor: 'S-2'
+      key_name: { get_param: ap_server_key_name}
+      name: demo_ap_server
+      networks:
+      - port: { get_resource: apserver_port }
+      - port: { get_resource: apserver_mng_port}
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            touch ap_eth_config1
+            echo DEVICE=eth1 >> ap_eth_config1
+            echo TYPE=Ethernet >> ap_eth_config1
+            echo HWADDR=ap_mac_addr1 >> ap_eth_config1
+            echo IPADDR=ap_ip_address1 >> ap_eth_config1
+            echo NETMASK=255.255.255.0 >> ap_eth_config1
+            echo NETWORK=192.168.0.0 >> ap_eth_config1
+            echo BROADCAST=192.168.0.255 >> ap_eth_config1
+            echo ONBOOT=yes >> ap_eth_config1
+            echo NM_CONTROLLED=no >> ap_eth_config1
+            echo BOOTPROTO=static >> ap_eth_config1
+            echo DEFROUTE=no >> ap_eth_config1
+            echo PEERDNS=yes >> ap_eth_config1
+            echo PEERROUTES=yes >> ap_eth_config1
+            echo IPV4_FAILURE_FATAL=yes >> ap_eth_config1
+            echo IPV6INIT=no >> ap_eth_config1
+            echo IPV6_AUTOCONF=no >> ap_eth_config1
+            echo DHCPV6C=no >> ap_eth_config1
+            echo IPV6_DEFROUTE=no >> ap_eth_config1
+            echo IPV6_FAILURE_FATAL=no >> ap_eth_config1
+            echo NAME="System eth1" >> ap_eth_config1
+
+            touch ap_route_config1
+            echo 192.168.246.0/24 via 192.168.0.1 >> ap_route_config1
+
+            service network restart
+
+          params:
+            ap_eth_config1: /etc/sysconfig/network-scripts/ifcfg-eth1
+            ap_route_config1: /etc/sysconfig/network-scripts/route-eth1
+            ap_mac_addr1: { get_attr: [ apserver_mng_port, mac_address ] }
+            ap_ip_address1:  { get_param: apserver_mng_ip }
+
+  #APサーバ用イメージ作成
+  ap_server_volume:
+    type: OS::Cinder::Volume
+    properties:
+      availability_zone: {get_param: availability_zone}
+      description: 'web server volume'
+      name: ap_server_sysvol
+      size: 30
+      volume_type: 'M1'
+      image: 'CentOS 6.5 64bit (English) 05'
+
+  #APサーバPIOログ用ボリューム作成
+  ap_server_piolog_volume:
+    type: OS::Cinder::Volume
+    properties:
+      availability_zone: {get_param: availability_zone}
+      description: 'ap server piolog volume'
+      name: ap_server_piologvol
+      size: 50
+      volume_type: 'M1'
+
+  #APサーバWebDav用ボリューム作成
+  ap_server_webdav_volume:
+    type: OS::Cinder::Volume
+    properties:
+      availability_zone: {get_param: availability_zone}
+      description: 'ap server webdav volume'
+      name: ap_server_webdavvol
+      size: 100
+      volume_type: 'M1'
+
+  #ESサーバ構築
+  es_server:
+    type: OS::Nova::Server
+    properties:
+      availability_zone: {get_param: availability_zone}
+      block_device_mapping:
+      - volume_id: {get_resource: es_server_volume}
+        device_name: vda
+      - volume_id: {get_resource: es_server_esdata_volume}
+        device_name: vdb
+      diskConfig: MANUAL
+      flavor: 'S-2'
+      key_name: { get_param: es_server_key_name}
+      name: demo_es_server
+      networks:
+      - port: { get_resource: esserver_port }
+      - port: { get_resource: esserver_mng_port}
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            touch es_eth_config1
+            echo DEVICE=eth1 >> es_eth_config1
+            echo TYPE=Ethernet >> es_eth_config1
+            echo HWADDR=es_mac_addr1 >> es_eth_config1
+            echo IPADDR=es_ip_address1 >> es_eth_config1
+            echo NETMASK=255.255.255.0 >> es_eth_config1
+            echo NETWORK=192.168.0.0 >> es_eth_config1
+            echo BROADCAST=192.168.0.255 >> es_eth_config1
+            echo ONBOOT=yes >> es_eth_config1
+            echo NM_CONTROLLED=no >> es_eth_config1
+            echo BOOTPROTO=static >> es_eth_config1
+            echo DEFROUTE=no >> es_eth_config1
+            echo PEERDNS=yes >> es_eth_config1
+            echo PEERROUTES=yes >> es_eth_config1
+            echo IPV4_FAILURE_FATAL=yes >> es_eth_config1
+            echo IPV6INIT=no >> es_eth_config1
+            echo IPV6_AUTOCONF=no >> es_eth_config1
+            echo DHCPV6C=no >> es_eth_config1
+            echo IPV6_DEFROUTE=no >> es_eth_config1
+            echo IPV6_FAILURE_FATAL=no >> es_eth_config1
+            echo NAME="System eth1" >> es_eth_config1
+
+            touch es_route_config1
+            echo 192.168.246.0/24 via 192.168.0.1 >> es_route_config1
+
+            service network restart
+
+          params:
+            es_eth_config1: /etc/sysconfig/network-scripts/ifcfg-eth1
+            es_route_config1: /etc/sysconfig/network-scripts/route-eth1
+            es_mac_addr1: { get_attr: [ esserver_mng_port, mac_address ] }
+            es_ip_address1:  { get_param: esserver_mng_ip }
+
+  #ESサーバ用イメージ作成
+  es_server_volume:
+    type: OS::Cinder::Volume
+    properties:
+      availability_zone: {get_param: availability_zone}
+      description: 'es server volume'
+      name: es_server_sysvol
+      size: 30
+      volume_type: 'M1'
+      image: 'CentOS 6.5 64bit (English) 05'
+
+  #ESサーバESデータ用ボリューム作成
+  es_server_esdata_volume:
+    type: OS::Cinder::Volume
+    properties:
+      availability_zone: {get_param: availability_zone}
+      description: 'es server esdata volume'
+      name: es_server_esdatavol
+      size: 200
+      volume_type: 'M1'
