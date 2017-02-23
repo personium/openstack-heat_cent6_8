@@ -22,7 +22,7 @@ The configuration that can be created with this HeatTemplate is shown below.
 ## Flow of creation
 I will explain the flow of creation using this HeatTemplate.
 
-### 1: Create Keypair
+### 1: Create Keypair (Manual)
 Create a KeyPair to log in to the server for Personium.
 
 ### 2: Preparation for network creation
@@ -45,7 +45,7 @@ Connect DMZ network, Secure network, Management network to external network.
 ### 5: Preparation for server creation
 Edit 02_personium_server.yaml.
 
-1. Set the availability zone you are using to the default of availability_zone in the Parameters section.
+  1. Set the availability zone you are using to the default of availability_zone in the Parameters section.
 ```
   availability_zone:
     type: string
@@ -53,7 +53,7 @@ Edit 02_personium_server.yaml.
     default: { Availability zone } # set Availability zone
 ```
 
-2. Network ID setting  
+  1. Network ID setting  
 Obtain the ID of the created network, and in the Parameters section Set to default of dmz_network_id, secure_network_id, mng_network_id.  
 ```
 dmz_network_id:
@@ -74,7 +74,7 @@ mng_network_id:
   default: { management_network_id } #set management network id.
 ```
 
-3. KeyPair setting
+  1. KeyPair setting
 Obtain the name of the created KeyPair and in the Parameters section
 Set to web_server_key_name, ap_server_key_name, es_server_key_name default.
 ```
@@ -96,7 +96,7 @@ es_server_key_name:
   default: { your_server_keyname } #set server KeyPair name.
 ```
 
-4. Certificate setting
+  1. Certificate setting
 Edit the user_data of the web_server in the resources section according to the certificate you are creating.
 ```
   web_server:
