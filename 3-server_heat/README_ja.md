@@ -28,7 +28,7 @@ Personium用のサーバにログインするためのKeyPairを作成します�
 ### 2:ネットワーク作成準備
 01_personium_network.yamlを編集します。
 
-1. Parametersセクションのavailability_zoneのdefaultに、使用しているアベイラビリティゾーンを設定します。
+ *  Parametersセクションのavailability_zoneのdefaultに、使用しているアベイラビリティゾーンを設定します。
 ```
   availability_zone:
     type: string
@@ -45,7 +45,7 @@ DMZネットワーク、Secureネットワーク、Managementネットワーク�
 ### 5: サーバ作成準備
 02_personium_server.yamlを編集します。   
 
-1. 使用しているアベイラビリティゾーンをParametersセクションのavailability_zoneのdefaultに設定します。
+ *  使用しているアベイラビリティゾーンをParametersセクションのavailability_zoneのdefaultに設定します。
 ```
   availability_zone:
     type: string
@@ -53,7 +53,7 @@ DMZネットワーク、Secureネットワーク、Managementネットワーク�
     default: { Availability zone } # set Availability zone
 ```
 
-2. ネットワークID設定  
+ *  ネットワークID設定  
 作成されたネットワークのIDを取得して、Parametersセクションのdmz_network_id、secure_network_id、mng_network_idのdefaultに設定します。
 ```
 dmz_network_id:
@@ -74,7 +74,7 @@ mng_network_id:
   default: { management_network_id } #set management network id.
 ```
 
-3. KeyPair設定  
+ *  KeyPair設定  
 作成したKeyPairの名前を取得して、Parametersセクションの  
 web_server_key_name、ap_server_key_name、es_server_key_nameのdefaultに設定します。
 ```
@@ -96,7 +96,7 @@ es_server_key_name:
   default: { your_server_keyname } #set server key name.
 ```
 
-4. 証明書設定  
+ *  証明書設定  
 resourcesセクションのweb_serverのuser_dataを作成する証明書に合わせて編集します。
 ```
   web_server:
