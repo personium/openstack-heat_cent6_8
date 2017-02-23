@@ -1,210 +1,171 @@
 heat_template_version: 2013-05-23
 description: Create Personium system.
 
-#### リソース定義 ####
 parameters:
 
-## AZ定義 ##
-  #AZ定義
   availability_zone:
     type: string
     description: Availability zone
-    default: jp-west-1a
+    default: { Availability zone } # set Availability zone
 
-## 仮想ネットワーク設定 ##
-  #DMZネットワーク名
   network_dmz_name:
     type: string
     description: Name of the dmz network
     default: dmz_network
 
-  #DMZサブネット名
   subnet_dmz_name:
     type: string
     description: Name of the dmz subnetwork.
     default: dmz_subnet
 
-  #DMZサブネットワークアドレス
   dmz_subnet_cidr:
     type: string
     description: CIDR representation of the dmz subnet.
     default: 172.16.0.0/24
 
-  #DMZネットワークDHCPアドレスプール開始アドレス
   dmz_dhcp_pool_start:
     type: string
     description: IP of the dhcp-pool start address.
     default: 172.16.0.10
 
-  #DMZネットワークDHCPアドレスプール終了アドレス
   dmz_dhcp_pool_end:
     type: string
     description: IP of the dhcp-pool end address.
     default: 172.16.0.254
 
-  #DMZネットワークゲートウェイIP
   dmz_gateway_ip:
     type: string
     description: gateway of the dmz network
     default: 172.16.0.1
 
-  #DMZルータ名
   dmz_router_name:
     type: string
     description: Name of the public vrouter.
     default: dmz_router
 
-  #SECUREネットワーク名
   network_secure_name:
     type: string
     description: Name of the secure network
     default: secure_network
 
-  #SECUREサブネット名
   subnet_secure_name:
     type: string
     description: Name of the dmz subnetwork.
     default: secure_subnet
 
-  #SECUREサブネットネットワークアドレス
   secure_subnet_cidr:
     type: string
     description: CIDR representation of the dmz subnet.
     default: 172.16.1.0/24
 
-  #SECUREネットワークDHCPアドレスプール開始アドレス
   secure_dhcp_pool_start:
     type: string
     description: IP of the dhcp-pool start address.
     default: 172.16.1.10
 
-  #SECUREネットワークDHCPアドレスプール終了アドレス
   secure_dhcp_pool_end:
     type: string
     description: IP of the dhcp-pool end address.
     default: 172.16.1.254
 
-  #SECUREネットワークゲートウェイIP
   secure_gateway_ip:
     type: string
     description: gateway of the secure network
     default: 172.16.1.1
 
-  #SECUREルータ名
   secure_router_name:
     type: string
     description: Name of the secure vrouter.
     default: secure_router
 
-  #DMZ-SECURE接続ルータ名
   dmz_secure_connect_router_name:
     type: string
     description: Name of the dmz-public connect vrouter.
     default: dmz_secure_connect_router
 
-  #管理用ネットワーク名
   network_mng_name:
     type: string
     description: Name of the management network
     default: mng_network
 
-  #管理用サブネット名
   subnet_mng_name:
     type: string
     description: Name of the management subnetwork.
     default: management_subnet
 
-  #管理用サブネットネットワークアドレス
   mng_subnet_cidr:
     type: string
     description: CIDR representation of the management subnet.
     default: 192.168.0.0/24
 
-  #管理用ネットワークDHCPアドレスプール開始アドレス
   mng_dhcp_pool_start:
     type: string
     description: IP of the dhcp-pool start address.
     default: 192.168.0.10
 
-  #管理用ネットワークDHCPアドレスプール終了アドレス
   mng_dhcp_pool_end:
     type: string
     description: IP of the dhcp-pool end address.
     default: 192.168.0.254
 
-  #管理用ルータ名
   mng_router_name:
     type: string
     description: Name of the management vrouter.
     default: management_router
 
-  #DNSサーバ1
   nameserver_ip1:
     type: string
     description: IP of the dns nameserver1.
     default: 133.162.161.9
 
-  #DNSサーバ2
   nameserver_ip2:
     type: string
     description: IP of the dns nameserver2.
     default: 133.162.161.10
 
-  #SSL-VPNネットワークアドレス
   sslvpn_network_addr:
     type: string
     description: CIDR representation of the SSL-VPN network.
     default: 192.168.246.0/24
 
-  #webサーバIPアドレス(dmz)
   webserver_dmz_ip:
     type: string
     description: IP of the web server.
     default: 172.16.0.11
 
-  #webサーバIPアドレス(管理)
   webserver_mng_ip:
     type: string
     description: IP of the web server.
     default: 192.168.0.11
 
-  #APサーバIPアドレス(secure)
   apserver_secure_ip:
     type: string
     description: IP of the AP server.
     default: 172.16.1.11
 
-  #APサーバIPアドレス(管理)
   apserver_mng_ip:
     type: string
     description: IP of the AP server.
     default: 192.168.0.21
 
-  #ESサーバIPアドレス(secure)
   esserver_secure_ip:
     type: string
     description: IP of the ES server.
     default: 172.16.1.12
 
-  #ESサーバIPアドレス(管理)
   esserver_mng_ip:
     type: string
     description: IP of the ES server.
     default: 192.168.0.22
 
-#### リソース作成 ####
 resources:
 
-## ネットワーク構築 ##
-
-  #DMZネットワーク作成
   dmz_network:
     type: OS::Neutron::Net
     properties:
       availability_zone: {get_param: availability_zone}
       name: { get_param: network_dmz_name }
 
-  #DMZサブネット作成
   dmz_subnet:
     type: OS::Neutron::Subnet
     properties:
@@ -220,7 +181,6 @@ resources:
       enable_dhcp: true
       host_routes:  [ { "destination" : "172.16.1.0/24", "nexthop" : "172.16.0.2"}]
 
-  #DMZサブネットにDMZ-SECUREサブネット接続用ポート作成
   dmz_secure_connect_port01:
    type: OS::Neutron::Port
    properties:
@@ -229,15 +189,12 @@ resources:
       fixed_ips:
         - ip_address: 172.16.0.2
 
-  #DMZルータ作成
   dmz_router:
     type: OS::Neutron::Router
     properties:
       availability_zone: { get_param: availability_zone }
       name: { get_param: dmz_router_name }
 
-
-  #DMZルータをDMZサブネットにアタッチ
   dmz_router_interface:
     depends_on: dmz_router
     type: OS::Neutron::RouterInterface
@@ -245,14 +202,12 @@ resources:
       router_id: { get_resource: dmz_router }
       subnet_id: { get_resource: dmz_subnet }
 
-  #SECUREネットワーク作成
   secure_network:
     type: OS::Neutron::Net
     properties:
       availability_zone: {get_param: availability_zone}
       name: { get_param: network_secure_name }
 
-  #SECUREサブネット作成
   secure_subnet:
     type: OS::Neutron::Subnet
     properties:
@@ -268,7 +223,6 @@ resources:
       enable_dhcp: true
       host_routes:  [ { "destination" : "172.16.0.0/24", "nexthop" : "172.16.1.2"}]
 
-  #SECUREサブネットにDMZ-SECUREサブネット接続用ポート作成
   dmz_secure_connect_port02:
    type: OS::Neutron::Port
    properties:
@@ -277,14 +231,12 @@ resources:
       fixed_ips:
         - ip_address: 172.16.1.2
 
-  #SECUREルータ作成
   secure_router:
     type: OS::Neutron::Router
     properties:
       availability_zone: { get_param: availability_zone }
       name: { get_param: secure_router_name }
 
-  #SECUREルータをSECUREサブネットにアタッチ
   secure_router_interface:
     depends_on: secure_router
     type: OS::Neutron::RouterInterface
@@ -292,14 +244,12 @@ resources:
       router_id: { get_resource: secure_router }
       subnet_id: { get_resource: secure_subnet }
 
-  #DMZ-SECURE接続ルータ作成
   dmz_secure_connect_router:
     type: OS::Neutron::Router
     properties:
       availability_zone: { get_param: availability_zone }
       name: { get_param: dmz_secure_connect_router_name }
 
-  #DMZ-SECURE接続ルータをDMZサブネットにアタッチ
   dmz_secure_connect_router_interface01:
     depends_on: dmz_secure_connect_router
     type: OS::Neutron::RouterInterface
@@ -307,7 +257,6 @@ resources:
       router_id: { get_resource: dmz_secure_connect_router }
       port_id: { get_resource: dmz_secure_connect_port01 }
 
-  #DMZ-SECURE接続ルータをSECUREサブネットにアタッチ
   dmz_secure_connect_router_interface02:
     depends_on: dmz_secure_connect_router
     type: OS::Neutron::RouterInterface
@@ -315,14 +264,12 @@ resources:
       router_id: { get_resource: dmz_secure_connect_router }
       port_id: { get_resource: dmz_secure_connect_port02 }
 
-  #管理用ネットワーク作成
   mng_network:
     type: OS::Neutron::Net
     properties:
       availability_zone: {get_param: availability_zone}
       name: { get_param: network_mng_name }
 
-  #管理用サブネット作成
   mng_subnet:
     type: OS::Neutron::Subnet
     properties:
@@ -336,14 +283,12 @@ resources:
           end: { get_param: mng_dhcp_pool_end }
       enable_dhcp: true
 
-  #管理用ルータ作成
   mng_router:
     type: OS::Neutron::Router
     properties:
       availability_zone: { get_param: availability_zone }
       name: { get_param: mng_router_name }
 
-  #管理用ルータを管理用サブネットにアタッチ
   mng_router_interface:
     depends_on: dmz_router
     type: OS::Neutron::RouterInterface
@@ -351,10 +296,6 @@ resources:
       router_id: { get_resource: mng_router }
       subnet_id: { get_resource: mng_subnet }
 
-## ファイアウォール設定 ##
-
-#DMZネットワークのファイアウォール設定
-  #DMZルータにFWをアタッチ
   dmz_firewall:
     type: OS::Neutron::Firewall
     properties:
@@ -364,8 +305,6 @@ resources:
       router_id: { get_resource: dmz_router }
       availability_zone: {get_param: availability_zone}
 
-
-  #DMZネットワークのファイアウォールポリシー
   dmz_firewall_policy:
      type: OS::Neutron::FirewallPolicy
      properties:
@@ -383,7 +322,6 @@ resources:
         - {get_resource: dmz_firewall_rule_009}
         - {get_resource: dmz_firewall_rule_999}
 
-  #DMZネットワークのファイアウォールルール
   dmz_firewall_rule_001:
     type: OS::Neutron::FirewallRule
     properties:
@@ -557,9 +495,7 @@ resources:
       ip_version: "4"
       source_ip_address: "0.0.0.0/0"
 
-#secureネットワークのファイアウォール設定
-  #secureルータにFWをアタッチ
-  sec_firewall:
+sec_firewall:
     type: OS::Neutron::Firewall
     properties:
       name: secure_firewall
@@ -568,7 +504,6 @@ resources:
       router_id: { get_resource: secure_router }
       availability_zone: {get_param: availability_zone}
 
-  #secureネットワークのファイアウォールポリシー
   sec_firewall_policy:
      type: OS::Neutron::FirewallPolicy
      properties:
@@ -593,7 +528,6 @@ resources:
         - {get_resource: sec_firewall_rule_016}
         - {get_resource: sec_firewall_rule_999}
 
-  #secureネットワークのファイアウォールルール
   sec_firewall_rule_001:
     type: OS::Neutron::FirewallRule
     properties:
@@ -894,8 +828,6 @@ resources:
       source_ip_address: "0.0.0.0/0"
 
 
-#DMZ-secureネットワーク間のFW作成
-  #DMZ-SECUREルータにFWをアタッチ
   dmz_secure_firewall:
     type: OS::Neutron::Firewall
     properties:
@@ -906,7 +838,6 @@ resources:
       availability_zone: {get_param: availability_zone}
 
 
-  #DMZ-SECURE間のファイアウォールポリシー
   dmz_secure_firewall_policy:
      type: OS::Neutron::FirewallPolicy
      properties:
@@ -921,7 +852,6 @@ resources:
         - {get_resource: dmz_secure_firewall_rule_006}
         - {get_resource: dmz_secure_firewall_rule_999}
 
-  #DMZ-SECURE間のファイアウォールルール
   dmz_secure_firewall_rule_001:
     type: OS::Neutron::FirewallRule
     properties:
@@ -1015,8 +945,6 @@ resources:
       source_ip_address: "0.0.0.0/0"
 
 
-#管理ネットワークのFW作成
-#管理ルータにFWをアタッチ
   mng_firewall:
     type: OS::Neutron::Firewall
     properties:
@@ -1026,8 +954,6 @@ resources:
       router_id: { get_resource: mng_router }
       availability_zone: {get_param: availability_zone}
 
-  #管理ネットワークのファイアウォールポリシー
-  mng_firewall_policy:
      type: OS::Neutron::FirewallPolicy
      properties:
        name: management_firewall_policy
@@ -1038,7 +964,6 @@ resources:
         - {get_resource: mng_firewall_rule_003}
         - {get_resource: mng_firewall_rule_999}
 
-  #管理ネットワークのファイアウォールルール
   mng_firewall_rule_001:
     type: OS::Neutron::FirewallRule
     properties:

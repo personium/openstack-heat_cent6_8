@@ -1,139 +1,109 @@
 heat_template_version: 2013-05-23
 description: Create Personium system.
 
-#### リソース定義 ####
 parameters:
-  #AZ定義
   availability_zone:
     type: string
     description: Availability zone
-    default: jp-west-1a
+    default: { Availability zone } # set Availability zone
 
-## 仮想ネットワーク設定 ##
-
-  #webサーバIPアドレス(dmz)
   webserver_dmz_ip:
     type: string
-    description: IP of the web server.
+    description: IP of the web server(dmz network).
     default: 172.16.0.11
 
-  #webサーバIPアドレス(管理)
   webserver_mng_ip:
     type: string
-    description: IP of the web server.
+    description: IP of the web server(Management network).
     default: 192.168.0.11
 
-  #APサーバIPアドレス(secure)
   apserver_secure_ip:
     type: string
-    description: IP of the AP server.
+    description: IP of the AP server(secure network).
     default: 172.16.1.11
 
-  #APサーバIPアドレス(管理)
   apserver_mng_ip:
     type: string
-    description: IP of the AP server.
+    description: IP of the AP server(Management network).
     default: 192.168.0.21
 
-  #ESサーバIPアドレス(secure)
   esserver_secure_ip:
     type: string
-    description: IP of the ES server.
+    description: IP of the ES server(secure network).
     default: 172.16.1.12
 
-  #ESサーバIPアドレス(管理)
   esserver_mng_ip:
     type: string
-    description: IP of the ES server.
+    description: IP of the ES server(Management network).
     default: 192.168.0.22
 
-  #DMZ ネットワークID
   dmz_network_id:
     type: string
     description: ID of the dmz network.
     default: { dmz_network_id } #set dmz network id.
 
-  #SECURE ネットワークID
   secure_network_id:
     type: string
     description: ID of the secure network.
     default: { secure_network_id } #set secure network id.
 
-  #Management ネットワークID
   mng_network_id:
     type: string
     description: ID of the management network.
     default: { management_network_id } #set management network id.
 
-## セキュリティグループ設定 ##
-
-  #DMZサブネットワークアドレス
   dmz_subnet_cidr:
     type: string
     description: CIDR representation of the dmz subnet.
     default: 172.16.0.0/24
 
-  #SECUREサブネットネットワークアドレス
   secure_subnet_cidr:
     type: string
     description: CIDR representation of the secure subnet.
     default: 172.16.1.0/24
 
-  #管理用サブネットネットワークアドレス
   mng_subnet_cidr:
     type: string
     description: CIDR representation of the management subnet.
     default: 192.168.0.0/24
 
-  #SSL-VPNサブネットネットワークアドレス
   ssl_subnet_cidr:
     type: string
     description: CIDR representation of the ssl-vpn subnet.
     default: 192.168.246.0/24
 
-  #DMZ用セキュリティグループ定義
   dmz_secgroup_para:
     type: string
     description: Security group name of dmz network.
     default: dmz_security_group
 
-  #SECUREネットワーク用セキュリティグループ定義
   secure_secgroup_para:
     type: string
     description: SSecurity group name of secure network
     default: secure_security_group
 
-  #管理ネットワーク用セキュリティグループ定義
   management_secgroup_para:
     type: string
     description: Security group name of management network
     default: management_security_group
 
-## サーバKey設定 ##
-
-  #WebサーバKey名
   web_server_key_name:
     type: string
     description: Name of web server key.
-    default: { your_server_keyname } #set server key name.
+    default: { your_server_keyname } #set server keyPair name.
 
-  #APサーバKey名
   ap_server_key_name:
     type: string
     description: Name of ap server key.
-    default: { your_server_keyname } #set server key name.
+    default: { your_server_keyname } #set server keyPair name.
 
-  #ESサーバKey名
   es_server_key_name:
     type: string
     description: Name of es server key.
-    default: { your_server_keyname } #set server key name.
+    default: { your_server_keyname } #set server keyPair name.
 
-#### リソース作成 ####
 resources:
 
-## セキュリティグループ構築 ##
-  #DMZセキュリティグループ作成
   dmz_secgroup:
     type: OS::Neutron::SecurityGroup
     properties:
@@ -208,7 +178,6 @@ resources:
          port_range_min: 443,
          port_range_max: 443} ]
 
-  #SECUREネットワークセキュリティグループ作成
   secure_secgroup:
     type: OS::Neutron::SecurityGroup
     properties:
@@ -276,7 +245,6 @@ resources:
          direction: ingress,
          protocol: icmp} ]
 
-  #管理ネットワークセキュリティグループ作成
   management_secgroup:
     type: OS::Neutron::SecurityGroup
     properties:
@@ -344,9 +312,6 @@ resources:
          direction: ingress,
          protocol: icmp} ]
 
-## ポート作成 ##
-
-  #DMZサブネットにWebサーバ用ポート作成
   webserver_port:
    type: OS::Neutron::Port
    properties:
@@ -357,7 +322,6 @@ resources:
       security_groups:
         - { get_resource: dmz_secgroup }
 
-  #SECUREサブネットにAPサーバ用ポート作成
   apserver_port:
    type: OS::Neutron::Port
    properties:
@@ -368,7 +332,6 @@ resources:
       security_groups:
         - { get_resource: secure_secgroup }
 
-  #SECUREサブネットにESサーバ用ポート作成
   esserver_port:
    type: OS::Neutron::Port
    properties:
@@ -379,7 +342,6 @@ resources:
       security_groups:
         - { get_resource: secure_secgroup }
 
-  #管理用サブネットにWebサーバ用ポート作成
   webserver_mng_port:
    type: OS::Neutron::Port
    properties:
@@ -390,7 +352,6 @@ resources:
       security_groups:
         - { get_resource: management_secgroup }
 
-  #管理用サブネットにAPサーバ用ポート作成
   apserver_mng_port:
    type: OS::Neutron::Port
    properties:
@@ -401,7 +362,6 @@ resources:
       security_groups:
         - { get_resource: management_secgroup }
 
-  #管理用サブネットにESサーバ用ポート作成
   esserver_mng_port:
    type: OS::Neutron::Port
    properties:
@@ -412,10 +372,6 @@ resources:
       security_groups:
         - { get_resource: management_secgroup }
 
-
-## サーバ構築 ##
-
-  #webサーバ構築
   web_server:
     type: OS::Nova::Server
     properties:
@@ -510,7 +466,6 @@ resources:
             web_mac_addr1: { get_attr: [ webserver_mng_port, mac_address ] }
             web_ip_address1:  { get_param: webserver_mng_ip }
 
-  #Webサーバ用イメージ作成
   web_server_volume:
     type: OS::Cinder::Volume
     properties:
@@ -521,7 +476,6 @@ resources:
       volume_type: 'M1'
       image: 'CentOS 6.5 64bit (English) 05'
 
-  #APサーバ構築
   ap_server:
     type: OS::Nova::Server
     properties:
@@ -578,7 +532,6 @@ resources:
             ap_mac_addr1: { get_attr: [ apserver_mng_port, mac_address ] }
             ap_ip_address1:  { get_param: apserver_mng_ip }
 
-  #APサーバ用イメージ作成
   ap_server_volume:
     type: OS::Cinder::Volume
     properties:
@@ -589,7 +542,6 @@ resources:
       volume_type: 'M1'
       image: 'CentOS 6.5 64bit (English) 05'
 
-  #APサーバPIOログ用ボリューム作成
   ap_server_piolog_volume:
     type: OS::Cinder::Volume
     properties:
@@ -599,7 +551,6 @@ resources:
       size: 50
       volume_type: 'M1'
 
-  #APサーバWebDav用ボリューム作成
   ap_server_webdav_volume:
     type: OS::Cinder::Volume
     properties:
@@ -609,7 +560,6 @@ resources:
       size: 100
       volume_type: 'M1'
 
-  #ESサーバ構築
   es_server:
     type: OS::Nova::Server
     properties:
@@ -664,7 +614,6 @@ resources:
             es_mac_addr1: { get_attr: [ esserver_mng_port, mac_address ] }
             es_ip_address1:  { get_param: esserver_mng_ip }
 
-  #ESサーバ用イメージ作成
   es_server_volume:
     type: OS::Cinder::Volume
     properties:
@@ -675,7 +624,6 @@ resources:
       volume_type: 'M1'
       image: 'CentOS 6.5 64bit (English) 05'
 
-  #ESサーバESデータ用ボリューム作成
   es_server_esdata_volume:
     type: OS::Cinder::Volume
     properties:
